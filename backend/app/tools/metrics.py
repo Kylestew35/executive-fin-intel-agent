@@ -3,19 +3,27 @@ import yfinance as yf
 async def get_metrics_and_signals(symbol: str = "AAPL"):
     ticker = yf.Ticker(symbol)
 
-    # --- Price ---
-    try:
-        price = float(ticker.fast_info.get("last_price") or 0)
-    except:
-        price = 0
+    # --- Try fast_info first ---
+    info = ticker.fast_info or {}
 
-    # --- Fundamentals ---
-    info = ticker.fast_info
+    price = info.get("last_price")
+    pe_ratio = info.get("pe_ratio")
+    eps = info.get("eps")
+    beta = info.get("beta")
 
-    pe_ratio = info.get("pe_ratio") or 0
-    eps = info.get("eps") or 0
-    revenue_growth = 0  # fast_info doesn't include this
-    beta = info.get("beta") or 1
+    # --- If fast_info failed, fall back to get_info() ---
+    if not price or price == 0:
+        try:
+            full = ticker.get_info()
+            price = full.get("currentPrice") or price or 0
+            pe_ratio = full.get("trailingPE") or pe_ratio or 0
+            eps = full.get("trailingEps") or eps or 0
+            revenue_growth = full.get("revenueGrowth") or 0
+            beta = full.get("beta") or beta or 1
+        except:
+            revenue_growth = 0
+    else:
+        revenue_growth = 0  # fast_info doesn't include this
 
     # --- History (30 days) ---
     try:
@@ -26,22 +34,22 @@ async def get_metrics_and_signals(symbol: str = "AAPL"):
 
     metrics = {
         "symbol": symbol,
-        "price": price,
-        "peRatio": pe_ratio,
-        "eps": eps,
-        "revenueGrowth": revenue_growth,
-        "volatility": "High" if beta > 1.2 else "Medium" if beta > 0.8 else "Low",
+        "price": float(price or 0),
+        "peRatio": float(pe_ratio or 0),
+        "eps": float(eps or 0),
+        "revenueGrowth": float(revenue_growth or 0),
+        "volatility": "High" if (beta or 1) > 1.2 else "Medium" if (beta or 1) > 0.8 else "Low",
         "riskScore": int((beta or 1) * 50),
         "history": history_prices,
     }
 
     # --- Signals ---
     signals = []
-    if price == 0:
+    if metrics["price"] == 0:
         signals.append({"message": f"{symbol} returned no price data."})
-    elif pe_ratio > 40:
+    elif metrics["peRatio"] > 40:
         signals.append({"message": f"{symbol} has a high P/E ratio — potential overvaluation."})
-    elif pe_ratio < 10:
+    elif metrics["peRatio"] < 10:
         signals.append({"message": f"{symbol} has a low P/E ratio — potential undervaluation."})
     else:
         signals.append({"message": f"{symbol} trading within normal valuation range."})
