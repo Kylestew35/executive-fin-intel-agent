@@ -4,3 +4,5 @@ httpx
 openai
 python-dotenv
 yfinance
+requests
+pydantic

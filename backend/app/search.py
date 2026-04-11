@@ -1,18 +1,15 @@
-import os
 import json
+from pathlib import Path
 from fastapi import APIRouter, Query
 
 router = APIRouter()
 
-# Simple symbol list (you can expand this later)
-STOCKS = [
-    {"symbol": "AAPL", "name": "Apple Inc."},
-    {"symbol": "MSFT", "name": "Microsoft Corporation"},
-    {"symbol": "GOOGL", "name": "Alphabet Inc."},
-    {"symbol": "AMZN", "name": "Amazon.com Inc."},
-    {"symbol": "TSLA", "name": "Tesla Inc."},
-    {"symbol": "META", "name": "Meta Platforms Inc."},
-]
+# Load tickers.json once at startup
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "data" / "tickers.json"
+
+with open(DATA_PATH, "r", encoding="utf-8") as f:
+    STOCKS = json.load(f)
 
 @router.get("/search")
 async def search_companies(query: str = Query(...)):
