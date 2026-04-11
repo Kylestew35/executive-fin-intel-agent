@@ -291,7 +291,7 @@ export default function Home() {
           {isMobile && (
             <div className="mb-4">
               <Title level={4} style={{ color: "#22c55e", marginBottom: 0 }}>{ticker}</Title>
-              <Text style={{ color: "#e5e7eb" }}>{companyName}</Text>
+              <Text style={{ color: "#94a3b8" }}>{companyName}</Text>
 
               <div className="mt-2">
                 <AutoComplete
