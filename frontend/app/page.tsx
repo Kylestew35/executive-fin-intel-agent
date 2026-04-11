@@ -9,7 +9,8 @@ import {
   Button,
   Spin,
   AutoComplete,
-  Drawer
+  Drawer,
+  Collapse
 } from "antd";
 import {
   MessageOutlined,
@@ -21,6 +22,7 @@ import PriceChart from "./components/PriceChart";
 const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { Panel } = Collapse;
 
 export default function Home() {
   const [ticker, setTicker] = useState("AAPL");
@@ -32,14 +34,12 @@ export default function Home() {
   const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Mobile UI state
+  // Mobile UI
   const [isMobile, setIsMobile] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
@@ -183,12 +183,12 @@ export default function Home() {
     ];
   }
 
-  // Chat UI (shared between desktop + mobile)
+  // Shared Chat UI
   const ChatUI = (
     <div>
-      <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 16 }}>
+      <div className="max-h-72 overflow-y-auto mb-4">
         {chatHistory.map((m, i) => (
-          <div key={i} style={{ marginBottom: 8 }}>
+          <div key={i} className="mb-2">
             <Text strong style={{ color: "white" }}>
               {m.role === "user" ? "You" : "Agent"}:
             </Text>
@@ -206,7 +206,7 @@ export default function Home() {
         onKeyDown={handleKeyDown}
       />
 
-      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+      <div className="mt-3 flex gap-2">
         <Button type="primary" onClick={sendMessage}>Send</Button>
         <Button danger icon={<ReloadOutlined />} onClick={refreshChat}>
           Refresh
@@ -217,17 +217,18 @@ export default function Home() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
+      {/* DESKTOP SIDEBAR */}
       {!isMobile && (
         <Sider width={280} style={{ background: "#020617", padding: "16px" }}>
           <Title level={4} style={{ color: "#22c55e" }}>Exec Intel Agent</Title>
           <Text type="secondary">Financial intelligence platform</Text>
 
-          <div style={{ marginTop: 24 }}>
+          <div className="mt-6">
             <Title level={5} style={{ color: "#22c55e", marginBottom: 4 }}>{ticker}</Title>
             <Text style={{ color: "#e5e7eb", fontSize: 13 }}>{companyName}</Text>
           </div>
 
-          <div style={{ marginTop: 16 }}>
+          <div className="mt-4">
             <Title level={5} style={{ color: "#e5e7eb" }}>Select Ticker</Title>
 
             <AutoComplete
@@ -241,7 +242,7 @@ export default function Home() {
             </AutoComplete>
           </div>
 
-          <div style={{ marginTop: 24 }}>
+          <div className="mt-6">
             <Title level={5} style={{ color: "#e5e7eb" }}>Key Metrics</Title>
             {!metrics && <Spin />}
             {metrics && (
@@ -268,7 +269,7 @@ export default function Home() {
             )}
           </div>
 
-          <div style={{ marginTop: 24 }}>
+          <div className="mt-6">
             <Text style={{ color: "white", fontSize: 12 }}>
               Built using Yahoo Finance + OpenAI  
               <br />© Kyle Stewart 2026
@@ -277,6 +278,7 @@ export default function Home() {
         </Sider>
       )}
 
+      {/* MAIN LAYOUT */}
       <Layout>
         <Header style={{ background: "#020617", padding: "0 24px" }}>
           <Title level={3} style={{ color: "#e5e7eb", margin: 0 }}>
@@ -285,7 +287,55 @@ export default function Home() {
         </Header>
 
         <Content style={{ padding: 24 }}>
-          {/* Desktop Chat */}
+          {/* MOBILE HEADER */}
+          {isMobile && (
+            <div className="mb-4">
+              <Title level={4} style={{ color: "#22c55e", marginBottom: 0 }}>{ticker}</Title>
+              <Text style={{ color: "#e5e7eb" }}>{companyName}</Text>
+
+              <div className="mt-2">
+                <AutoComplete
+                  style={{ width: "100%" }}
+                  options={searchOptions}
+                  onSearch={onSearch}
+                  onSelect={(val) => setTicker(val)}
+                  placeholder="Search ticker or company..."
+                >
+                  <Input prefix={<SearchOutlined />} style={{ background: "#0f172a", color: "white" }} />
+                </AutoComplete>
+              </div>
+
+              {/* COLLAPSIBLE METRICS */}
+              {metrics && (
+                <Collapse className="mt-3" ghost>
+                  <Panel header="Key Metrics" key="1">
+                    <div className="space-y-2">
+                      {[
+                        ["Price", `$${metrics.price} (${metrics.symbol})`],
+                        ["Revenue Growth", `${metrics.revenueGrowth}%`],
+                        ["Volatility", metrics.volatility],
+                        ["Risk Score", `${metrics.riskScore}/100`],
+                        ["P/E Ratio", metrics.peRatio],
+                        ["EPS", metrics.eps]
+                      ].map(([title, value], i) => (
+                        <Card
+                          key={i}
+                          size="small"
+                          title={title}
+                          styles={{ header: { color: "white", background: "#0f172a" } }}
+                          style={{ background: "#020617", color: "white" }}
+                        >
+                          <Text style={{ color: "white" }}>{value}</Text>
+                        </Card>
+                      ))}
+                    </div>
+                  </Panel>
+                </Collapse>
+              )}
+            </div>
+          )}
+
+          {/* DESKTOP CHAT */}
           {!isMobile && (
             <Card
               title={<><MessageOutlined /> Executive AI Agent</>}
@@ -296,7 +346,7 @@ export default function Home() {
             </Card>
           )}
 
-          {/* Mobile Chat Drawer */}
+          {/* MOBILE CHAT BUTTON + DRAWER */}
           {isMobile && (
             <>
               <Button
@@ -328,6 +378,7 @@ export default function Home() {
             </>
           )}
 
+          {/* METRICS SUMMARY + SIGNALS + CHART */}
           {metrics && (
             <div
               style={{
